@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type FormEvent } from 'react';
+import { useState, useEffect, useCallback, type SyntheticEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { recipes as recipesApi, ingredients as ingredientsApi } from '@/api/client';
 import { ApiClientError } from '@/api/client';
@@ -63,7 +63,7 @@ export default function RecipeDetailPage() {
     setFormIngredients(formIngredients.filter((_, i) => i !== index));
   }
 
-  async function handleSave(e: FormEvent) {
+  async function handleSave(e: SyntheticEvent) {
     e.preventDefault();
     setError('');
     setSaving(true);

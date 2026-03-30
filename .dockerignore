@@ -1,0 +1,10 @@
+**/node_modules
+**/bin
+**/obj
+**/.git
+**/.vscode
+**/dist
+**/*.db
+**/*.db-shm
+**/*.db-wal
+frontend/.env*.local

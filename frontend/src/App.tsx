@@ -10,52 +10,24 @@ import PantryPage from '@/pages/PantryPage';
 import ShoppingListPage from '@/pages/ShoppingListPage';
 import IngredientsPage from '@/pages/IngredientsPage';
 import UsersPage from '@/pages/UsersPage';
+import type { ReactNode } from 'react';
 
-function ProtectedRoutes() {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return <div className="loading-spinner"><div className="spinner" /></div>;
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return (
-    <Routes>
-      <Route element={<AppLayout />}>
-        <Route index element={<Navigate to="/recipes" replace />} />
-        <Route path="recipes" element={<RecipesPage />} />
-        <Route path="recipes/:id" element={<RecipeDetailPage />} />
-        <Route path="meal-plan" element={<MealPlanPage />} />
-        <Route path="pantry" element={<PantryPage />} />
-        <Route path="shopping-list" element={<ShoppingListPage />} />
-        <Route path="ingredients" element={<IngredientsPage />} />
-        <Route path="users" element={<UsersPage />} />
-      </Route>
-    </Routes>
-  );
+function LoadingSpinner() {
+  return <div className="loading-spinner"><div className="spinner" /></div>;
 }
 
-function AuthRoutes() {
+function PublicGuard({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+  if (loading) return <LoadingSpinner />;
+  if (user) return <Navigate to="/recipes" replace />;
+  return <>{children}</>;
+}
 
-  if (loading) {
-    return <div className="loading-spinner"><div className="spinner" /></div>;
-  }
-
-  if (user) {
-    return <Navigate to="/recipes" replace />;
-  }
-
-  return (
-    <Routes>
-      <Route path="login" element={<LoginPage />} />
-      <Route path="register" element={<RegisterPage />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
-  );
+function PrivateGuard() {
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingSpinner />;
+  if (!user) return <Navigate to="/login" replace />;
+  return <AppLayout />;
 }
 
 export default function App() {
@@ -63,9 +35,19 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route path="/login" element={<AuthRoutes />} />
-          <Route path="/register" element={<AuthRoutes />} />
-          <Route path="/*" element={<ProtectedRoutes />} />
+          <Route path="/login" element={<PublicGuard><LoginPage /></PublicGuard>} />
+          <Route path="/register" element={<PublicGuard><RegisterPage /></PublicGuard>} />
+          <Route element={<PrivateGuard />}>
+            <Route index element={<Navigate to="/recipes" replace />} />
+            <Route path="recipes" element={<RecipesPage />} />
+            <Route path="recipes/:id" element={<RecipeDetailPage />} />
+            <Route path="meal-plan" element={<MealPlanPage />} />
+            <Route path="pantry" element={<PantryPage />} />
+            <Route path="shopping-list" element={<ShoppingListPage />} />
+            <Route path="ingredients" element={<IngredientsPage />} />
+            <Route path="users" element={<UsersPage />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/recipes" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

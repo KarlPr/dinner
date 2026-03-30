@@ -1,0 +1,18 @@
+services:
+  dinner:
+    build: .
+    container_name: dinner
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    volumes:
+      - /mnt/data/mediastack/dinner-data/uploads:/app/uploads
+      - /mnt/data/mediastack/dinner-data/data:/app/data
+    environment:
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/mealplanner.db
+      - Cors__AllowedOrigins__0=http://localhost:8080
+      - Cookie__SameSite=Lax
+      - Cookie__Secure=false
+
+volumes:
+  dinner-data:
