@@ -1,8 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { UserResponse } from '@/types/api';
-import { auth, users } from '@/api/client';
-
-const USER_STORAGE_KEY = 'dinner_user';
+import { auth } from '@/api/client';
 
 interface AuthContextType {
   user: UserResponse | null;
@@ -14,68 +12,33 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-function loadStoredUser(): UserResponse | null {
-  try {
-    const raw = sessionStorage.getItem(USER_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function storeUser(user: UserResponse | null) {
-  if (user) {
-    sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
-  } else {
-    sessionStorage.removeItem(USER_STORAGE_KEY);
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Validate session on mount by hitting an authenticated endpoint.
-  // If the cookie is valid, the request succeeds and we trust the stored user.
-  // If not, clear stored state.
+  // Restore session on mount via the /auth/me endpoint.
+  // The backend reads the httponly cookie and returns the current user.
   useEffect(() => {
-    const stored = loadStoredUser();
-    if (!stored) {
-      setLoading(false);
-      return;
-    }
-
-    // Validate the session is still alive by fetching the user's own profile
-    users.get(stored.id)
-      .then((u) => {
-        setUser(u);
-        storeUser(u);
-      })
-      .catch(() => {
-        storeUser(null);
-        setUser(null);
-      })
+    auth.me()
+      .then((u) => setUser(u))
+      .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
 
   const login = useCallback(async (name: string, password: string) => {
     const u = await auth.login({ name, password });
     setUser(u);
-    storeUser(u);
   }, []);
 
   const register = useCallback(async (name: string, password: string, email?: string) => {
     await auth.register({ name, email, password });
-    // Auto-login after registration
     const u = await auth.login({ name, password });
     setUser(u);
-    storeUser(u);
   }, []);
 
   const logout = useCallback(async () => {
     await auth.logout();
     setUser(null);
-    storeUser(null);
   }, []);
 
   return (

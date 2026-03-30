@@ -225,16 +225,16 @@ Uses React Context to provide auth state globally.
 
 | Method | Parameters | Description |
 | ------ | ---------- | ----------- |
-| `login` | `name: string, password: string` | Calls `POST /api/auth/login`, stores user in state + sessionStorage |
+| `login` | `name: string, password: string` | Calls `POST /api/auth/login`, sets user in state |
 | `register` | `name: string, password: string, email?: string` | Calls register then auto-login |
-| `logout` | none | Calls `POST /api/auth/logout`, clears state + sessionStorage |
+| `logout` | none | Calls `POST /api/auth/logout`, clears user state |
 
 #### Session Persistence
 
-- On login, user info is saved to `sessionStorage` under key `dinner_user`
-- On app mount, if stored user exists, validates by calling `GET /api/users/{id}`
-- If validation fails (cookie expired), clears stored state and redirects to login
-- The backend uses an `httponly` cookie (`user_id`) — not readable by JavaScript
+- The backend sets an `httponly` cookie (`user_id`) on login — not readable by JavaScript
+- On app mount, the context calls `GET /api/auth/me` to restore the session from the cookie
+- If the cookie is missing or invalid, `/auth/me` returns 401 and the user sees the login page
+- No client-side storage (sessionStorage/localStorage) is used for auth state
 
 #### Usage
 
@@ -281,6 +281,7 @@ class ApiClientError extends Error {
 | `auth.register(data)` | `POST /api/auth/register` | `UserResponse` |
 | `auth.login(data)` | `POST /api/auth/login` | `UserResponse` |
 | `auth.logout()` | `POST /api/auth/logout` | `void` |
+| `auth.me()` | `GET /api/auth/me` | `UserResponse` |
 
 #### `ingredients`
 
@@ -689,7 +690,7 @@ The app uses **local component state** for all page-level data and **React Conte
 
 | Concern | Solution |
 | ------- | -------- |
-| Authentication | `AuthContext` (React Context + sessionStorage) |
+| Authentication | `AuthContext` (React Context + `/auth/me` cookie validation) |
 | Page data | `useState` + `useEffect` + `useCallback` per page |
 | Form state | `useState` per form field |
 | Modals | `useState<boolean>` for visibility |
@@ -726,8 +727,8 @@ try {
 
 ### 401 Handling
 
-- If a user's session expires (cookie invalid), the next API call to validate the stored user will fail
-- The auth context clears the stored user and shows the login page
+- If a user's session expires (cookie invalid), `GET /api/auth/me` returns 401 on next page load
+- The auth context sets `user` to `null`, which triggers the route guard redirect to `/login`
 - No automatic retry or token refresh
 
 ---

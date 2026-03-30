@@ -102,6 +102,9 @@ export const auth = {
 
   logout: () =>
     request<void>('/auth/logout', { method: 'POST' }),
+
+  me: () =>
+    request<UserResponse>('/auth/me'),
 };
 
 // === Ingredients ===
