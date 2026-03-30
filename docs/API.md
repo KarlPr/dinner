@@ -114,6 +114,22 @@ Register a new user.
 
 **Response:** `204 No Content` — Clears authentication cookie.
 
+### GET `/api/auth/me`
+
+Get the currently authenticated user from the session cookie. Use this on page load to restore the session.
+
+**Response:** `200 OK`
+
+```json
+{
+  "id": 1,
+  "name": "Alice",
+  "email": "alice@example.com"
+}
+```
+
+**Response:** `401 Unauthorized` — No valid session cookie.
+
 ---
 
 ## Ingredients
@@ -720,6 +736,7 @@ Delete a package size.
 | POST   | `/api/auth/register`                        | Register user                      |
 | POST   | `/api/auth/login`                           | Login                              |
 | POST   | `/api/auth/logout`                          | Logout                             |
+| GET    | `/api/auth/me`                              | Get current user session           |
 | GET    | `/api/ingredients`                          | List ingredients                   |
 | GET    | `/api/ingredients/{id}`                     | Get ingredient                     |
 | POST   | `/api/ingredients`                          | Create ingredient                  |

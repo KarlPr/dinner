@@ -12,12 +12,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // OpenAPI / Swagger
 builder.Services.AddOpenApi();
 
-// CORS (allow frontend dev server)
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?? ["http://localhost:5173"];
+        policy.WithOrigins(origins)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -39,7 +41,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
-app.UseStaticFiles(); // Serve uploaded images
+app.UseStaticFiles();
 
 // Map all endpoint groups
 app.MapAuthEndpoints();
@@ -50,5 +52,8 @@ app.MapPantryEndpoints();
 app.MapShoppingListEndpoints();
 app.MapUserEndpoints();
 app.MapIngredientPackageEndpoints();
+
+// SPA fallback — serve index.html for non-API routes (when wwwroot/index.html exists)
+app.MapFallbackToFile("index.html");
 
 app.Run();

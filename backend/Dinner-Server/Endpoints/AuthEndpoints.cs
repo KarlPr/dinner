@@ -39,12 +39,35 @@ public static class AuthEndpoints
             if (user is null || !BCrypt.Net.BCrypt.Verify(req.Password, user.PasswordHash))
                 return Results.Unauthorized();
 
+            var cookieConfig = http.RequestServices.GetRequiredService<IConfiguration>();
+            var sameSite = cookieConfig.GetValue("Cookie:SameSite", "Lax") switch
+            {
+                "None" => SameSiteMode.None,
+                "Strict" => SameSiteMode.Strict,
+                _ => SameSiteMode.Lax
+            };
+            var secure = cookieConfig.GetValue("Cookie:Secure", false);
+
             http.Response.Cookies.Append("user_id", user.Id.ToString(), new CookieOptions
             {
                 HttpOnly = true,
-                SameSite = SameSiteMode.Strict,
+                SameSite = sameSite,
+                Secure = secure,
                 MaxAge = TimeSpan.FromDays(30)
             });
+
+            return Results.Ok(new UserResponse(user.Id, user.Name, user.Email));
+        });
+
+        group.MapGet("/me", async (HttpContext http, AppDbContext db) =>
+        {
+            if (!http.Request.Cookies.TryGetValue("user_id", out var userIdStr)
+                || !int.TryParse(userIdStr, out var userId))
+                return Results.Unauthorized();
+
+            var user = await db.Users.FindAsync(userId);
+            if (user is null)
+                return Results.Unauthorized();
 
             return Results.Ok(new UserResponse(user.Id, user.Name, user.Email));
         });
