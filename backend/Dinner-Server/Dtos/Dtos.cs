@@ -6,9 +6,9 @@ public record LoginRequest(string Name, string Password);
 public record UserResponse(int Id, string Name, string? Email);
 
 // === Ingredients ===
-public record IngredientResponse(int Id, string Name, string BaseUnit);
-public record CreateIngredientRequest(string Name, string BaseUnit);
-public record UpdateIngredientRequest(string Name, string BaseUnit);
+public record IngredientResponse(int Id, string Name, string BaseUnit, int? CategoryId, string? CategoryName);
+public record CreateIngredientRequest(string Name, string BaseUnit, int? CategoryId);
+public record UpdateIngredientRequest(string Name, string BaseUnit, int? CategoryId);
 
 // === Recipes ===
 public record RecipeListResponse(int Id, string Name, int Servings, int CreatedBy, string CreatedByName, DateTime CreatedAt);
@@ -58,3 +58,14 @@ public record UpdateUserRequest(string Name, string? Email);
 public record IngredientPackageResponse(int Id, int IngredientId, string Label, double PackageQuantity, string Unit);
 public record CreateIngredientPackageRequest(string Label, double PackageQuantity, string Unit);
 public record UpdateIngredientPackageRequest(string Label, double PackageQuantity, string Unit);
+
+// === Ingredient Categories ===
+public record IngredientCategoryResponse(int Id, string Name);
+public record IngredientCategoryDetailResponse(int Id, string Name, List<IngredientResponse> Ingredients);
+public record CreateIngredientCategoryRequest(string Name);
+public record UpdateIngredientCategoryRequest(string Name);
+
+// === Ingredient Substitutions ===
+public record IngredientSubstitutionResponse(int Id, int IngredientId, string IngredientName, int SubstituteId, string SubstituteName, string? Note);
+public record CreateIngredientSubstitutionRequest(int SubstituteId, string? Note);
+public record UpdateIngredientSubstitutionRequest(string? Note);

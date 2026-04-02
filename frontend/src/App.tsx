@@ -9,6 +9,7 @@ import MealPlanPage from '@/pages/MealPlanPage';
 import PantryPage from '@/pages/PantryPage';
 import ShoppingListPage from '@/pages/ShoppingListPage';
 import IngredientsPage from '@/pages/IngredientsPage';
+import IngredientCategoriesPage from '@/pages/IngredientCategoriesPage';
 import UsersPage from '@/pages/UsersPage';
 import type { ReactNode } from 'react';
 
@@ -45,6 +46,7 @@ export default function App() {
             <Route path="pantry" element={<PantryPage />} />
             <Route path="shopping-list" element={<ShoppingListPage />} />
             <Route path="ingredients" element={<IngredientsPage />} />
+            <Route path="ingredient-categories" element={<IngredientCategoriesPage />} />
             <Route path="users" element={<UsersPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/recipes" replace />} />

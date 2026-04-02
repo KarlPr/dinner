@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ingredients as ingredientsApi, ingredientPackages as packagesApi } from '@/api/client';
+import { ingredients as ingredientsApi, ingredientPackages as packagesApi, ingredientCategories as categoriesApi, ingredientSubstitutions as substitutionsApi } from '@/api/client';
 import { ApiClientError } from '@/api/client';
-import type { IngredientResponse, IngredientPackageResponse } from '@/types/api';
+import type { IngredientResponse, IngredientPackageResponse, IngredientCategoryResponse, IngredientSubstitutionResponse } from '@/types/api';
 
 const UNIT_OPTIONS = ['g', 'ml', 'pcs'];
 
 export default function IngredientsPage() {
   const [items, setItems] = useState<IngredientResponse[]>([]);
+  const [categories, setCategories] = useState<IngredientCategoryResponse[]>([]);
   const [search, setSearch] = useState('');
+  const [filterCategoryId, setFilterCategoryId] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -16,6 +18,7 @@ export default function IngredientsPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [formName, setFormName] = useState('');
   const [formUnit, setFormUnit] = useState('g');
+  const [formCategoryId, setFormCategoryId] = useState<number | null>(null);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -29,23 +32,43 @@ export default function IngredientsPage() {
   const [pkgEditId, setPkgEditId] = useState<number | null>(null);
   const [pkgError, setPkgError] = useState('');
 
+  // Substitutions modal
+  const [showSubs, setShowSubs] = useState(false);
+  const [subsIngredient, setSubsIngredient] = useState<IngredientResponse | null>(null);
+  const [substitutions, setSubstitutions] = useState<IngredientSubstitutionResponse[]>([]);
+  const [subsError, setSubsError] = useState('');
+  const [subSubstituteId, setSubSubstituteId] = useState('');
+  const [subNote, setSubNote] = useState('');
+  const [subEditId, setSubEditId] = useState<number | null>(null);
+
   const load = useCallback(async () => {
     try {
-      const data = await ingredientsApi.list(search || undefined);
+      const data = await ingredientsApi.list(search || undefined, filterCategoryId);
       setItems(data);
     } catch {
       setError('Failed to load ingredients');
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, [search, filterCategoryId]);
+
+  const loadCategories = useCallback(async () => {
+    try {
+      const data = await categoriesApi.list();
+      setCategories(data);
+    } catch {
+      // non-critical
+    }
+  }, []);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { loadCategories(); }, [loadCategories]);
 
   function openCreate() {
     setEditId(null);
     setFormName('');
     setFormUnit('g');
+    setFormCategoryId(null);
     setFormError('');
     setShowModal(true);
   }
@@ -54,6 +77,7 @@ export default function IngredientsPage() {
     setEditId(item.id);
     setFormName(item.name);
     setFormUnit(item.baseUnit);
+    setFormCategoryId(item.categoryId);
     setFormError('');
     setShowModal(true);
   }
@@ -63,9 +87,9 @@ export default function IngredientsPage() {
     setSaving(true);
     try {
       if (editId) {
-        await ingredientsApi.update(editId, { name: formName, baseUnit: formUnit });
+        await ingredientsApi.update(editId, { name: formName, baseUnit: formUnit, categoryId: formCategoryId });
       } else {
-        await ingredientsApi.create({ name: formName, baseUnit: formUnit });
+        await ingredientsApi.create({ name: formName, baseUnit: formUnit, categoryId: formCategoryId });
       }
       setShowModal(false);
       load();
@@ -133,6 +157,52 @@ export default function IngredientsPage() {
     }
   }
 
+  // === Substitutions ===
+  async function openSubstitutions(item: IngredientResponse) {
+    setSubsIngredient(item);
+    setSubsError('');
+    setSubEditId(null);
+    setSubSubstituteId('');
+    setSubNote('');
+    setShowSubs(true);
+    try {
+      const data = await substitutionsApi.list(item.id);
+      setSubstitutions(data);
+    } catch {
+      setSubsError('Failed to load substitutions');
+    }
+  }
+
+  async function handleSaveSubstitution() {
+    if (!subsIngredient) return;
+    setSubsError('');
+    try {
+      if (subEditId) {
+        await substitutionsApi.update(subsIngredient.id, subEditId, { note: subNote || null });
+      } else {
+        await substitutionsApi.create(subsIngredient.id, { substituteId: parseInt(subSubstituteId), note: subNote || null });
+      }
+      const data = await substitutionsApi.list(subsIngredient.id);
+      setSubstitutions(data);
+      setSubEditId(null);
+      setSubSubstituteId('');
+      setSubNote('');
+    } catch (err) {
+      setSubsError(err instanceof ApiClientError ? err.message : 'Save failed');
+    }
+  }
+
+  async function handleDeleteSubstitution(id: number) {
+    if (!subsIngredient) return;
+    try {
+      await substitutionsApi.delete(subsIngredient.id, id);
+      const data = await substitutionsApi.list(subsIngredient.id);
+      setSubstitutions(data);
+    } catch (err) {
+      setSubsError(err instanceof ApiClientError ? err.message : 'Delete failed');
+    }
+  }
+
   if (loading) return <div className="loading-spinner"><div className="spinner" /></div>;
 
   return (
@@ -144,13 +214,23 @@ export default function IngredientsPage() {
 
       {error && <div className="alert alert-error">{error}</div>}
 
-      <div className="search-bar">
+      <div className="search-bar" style={{ display: 'flex', gap: '0.5rem' }}>
         <input
           className="form-input"
           placeholder="Search ingredients..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          style={{ flex: 1 }}
         />
+        <select
+          className="form-select"
+          value={filterCategoryId ?? ''}
+          onChange={(e) => setFilterCategoryId(e.target.value ? Number(e.target.value) : undefined)}
+          style={{ width: 'auto' }}
+        >
+          <option value="">All Categories</option>
+          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
       </div>
 
       <div className="card">
@@ -159,21 +239,24 @@ export default function IngredientsPage() {
             <thead>
               <tr>
                 <th>Name</th>
+                <th>Category</th>
                 <th>Base Unit</th>
-                <th style={{ width: '200px' }}>Actions</th>
+                <th style={{ width: '280px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {items.length === 0 ? (
-                <tr><td colSpan={3} className="empty-state">No ingredients found</td></tr>
+                <tr><td colSpan={4} className="empty-state">No ingredients found</td></tr>
               ) : (
                 items.map((item) => (
                   <tr key={item.id}>
                     <td>{item.name}</td>
+                    <td>{item.categoryName ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
                     <td><span className="badge">{item.baseUnit}</span></td>
                     <td>
                       <div className="flex gap-sm">
                         <button className="btn btn-secondary btn-sm" onClick={() => openPackages(item)}>Packages</button>
+                        <button className="btn btn-secondary btn-sm" onClick={() => openSubstitutions(item)}>Subs</button>
                         <button className="btn btn-secondary btn-sm" onClick={() => openEdit(item)}>Edit</button>
                         <button className="btn btn-danger btn-sm" onClick={() => handleDelete(item.id)}>Delete</button>
                       </div>
@@ -204,6 +287,13 @@ export default function IngredientsPage() {
                 <label className="form-label">Base Unit</label>
                 <select className="form-select" value={formUnit} onChange={(e) => setFormUnit(e.target.value)}>
                   {UNIT_OPTIONS.map((u) => <option key={u} value={u}>{u}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Category</label>
+                <select className="form-select" value={formCategoryId ?? ''} onChange={(e) => setFormCategoryId(e.target.value ? Number(e.target.value) : null)}>
+                  <option value="">None</option>
+                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
             </div>
@@ -285,6 +375,85 @@ export default function IngredientsPage() {
                   </button>
                   {pkgEditId && (
                     <button className="btn btn-secondary btn-sm" onClick={() => { setPkgEditId(null); setPkgLabel(''); setPkgQty(''); }}>
+                      Cancel Edit
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Substitutions Modal */}
+      {showSubs && subsIngredient && (
+        <div className="modal-overlay" onClick={() => setShowSubs(false)}>
+          <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <span>Substitutions for {subsIngredient.name}</span>
+              <button className="btn btn-ghost btn-icon" onClick={() => setShowSubs(false)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              {subsError && <div className="alert alert-error">{subsError}</div>}
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>Ingredient</th>
+                    <th>Substitute</th>
+                    <th>Note</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {substitutions.length === 0 ? (
+                    <tr><td colSpan={4} className="empty-state">No substitutions defined</td></tr>
+                  ) : (
+                    substitutions.map((sub) => (
+                      <tr key={sub.id}>
+                        <td>{sub.ingredientName}</td>
+                        <td>{sub.substituteName}</td>
+                        <td>{sub.note ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
+                        <td>
+                          <div className="flex gap-sm">
+                            <button className="btn btn-secondary btn-sm" onClick={() => {
+                              setSubEditId(sub.id);
+                              setSubNote(sub.note ?? '');
+                            }}>Edit Note</button>
+                            <button className="btn btn-danger btn-sm" onClick={() => handleDeleteSubstitution(sub.id)}>Delete</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+
+              <div className="mt-md">
+                <h3 style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                  {subEditId ? 'Edit Substitution Note' : 'Add Substitution'}
+                </h3>
+                {!subEditId && (
+                  <div className="form-group">
+                    <label className="form-label">Substitute Ingredient</label>
+                    <select className="form-select" value={subSubstituteId} onChange={(e) => setSubSubstituteId(e.target.value)}>
+                      <option value="">Select ingredient...</option>
+                      {items.filter((i) => i.id !== subsIngredient.id).map((i) => (
+                        <option key={i.id} value={i.id}>{i.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <div className="form-group">
+                  <label className="form-label">Note</label>
+                  <input className="form-input" value={subNote} onChange={(e) => setSubNote(e.target.value)} placeholder="Optional note about this substitution" />
+                </div>
+                <div className="flex gap-sm">
+                  <button className="btn btn-primary btn-sm" onClick={handleSaveSubstitution} disabled={!subEditId && !subSubstituteId}>
+                    {subEditId ? 'Update' : 'Add'}
+                  </button>
+                  {subEditId && (
+                    <button className="btn btn-secondary btn-sm" onClick={() => { setSubEditId(null); setSubSubstituteId(''); setSubNote(''); }}>
                       Cancel Edit
                     </button>
                   )}

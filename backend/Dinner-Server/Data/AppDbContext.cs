@@ -7,6 +7,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Ingredient> Ingredients => Set<Ingredient>();
+    public DbSet<IngredientCategory> IngredientCategories => Set<IngredientCategory>();
+    public DbSet<IngredientSubstitution> IngredientSubstitutions => Set<IngredientSubstitution>();
     public DbSet<Recipe> Recipes => Set<Recipe>();
     public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
     public DbSet<MealPlan> MealPlans => Set<MealPlan>();
@@ -25,12 +27,38 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(u => u.PasswordHash).IsRequired();
         });
 
+        // IngredientCategory
+        modelBuilder.Entity<IngredientCategory>(e =>
+        {
+            e.HasIndex(c => c.Name).IsUnique();
+            e.Property(c => c.Name).HasMaxLength(100).IsRequired();
+        });
+
         // Ingredient
         modelBuilder.Entity<Ingredient>(e =>
         {
             e.HasIndex(i => i.Name).IsUnique();
             e.Property(i => i.Name).HasMaxLength(200).IsRequired();
             e.Property(i => i.BaseUnit).HasMaxLength(10).IsRequired();
+            e.HasOne(i => i.Category)
+                .WithMany(c => c.Ingredients)
+                .HasForeignKey(i => i.CategoryId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // IngredientSubstitution
+        modelBuilder.Entity<IngredientSubstitution>(e =>
+        {
+            e.HasIndex(s => new { s.IngredientId, s.SubstituteId }).IsUnique();
+            e.Property(s => s.Note).HasMaxLength(500);
+            e.HasOne(s => s.Ingredient)
+                .WithMany(i => i.Substitutions)
+                .HasForeignKey(s => s.IngredientId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(s => s.Substitute)
+                .WithMany(i => i.SubstitutedBy)
+                .HasForeignKey(s => s.SubstituteId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Recipe

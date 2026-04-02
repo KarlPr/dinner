@@ -21,16 +21,59 @@ export interface IngredientResponse {
   id: number;
   name: string;
   baseUnit: string;
+  categoryId: number | null;
+  categoryName: string | null;
 }
 
 export interface CreateIngredientRequest {
   name: string;
   baseUnit: string;
+  categoryId?: number | null;
 }
 
 export interface UpdateIngredientRequest {
   name: string;
   baseUnit: string;
+  categoryId?: number | null;
+}
+
+// === Ingredient Categories ===
+export interface IngredientCategoryResponse {
+  id: number;
+  name: string;
+}
+
+export interface IngredientCategoryDetailResponse {
+  id: number;
+  name: string;
+  ingredients: IngredientResponse[];
+}
+
+export interface CreateIngredientCategoryRequest {
+  name: string;
+}
+
+export interface UpdateIngredientCategoryRequest {
+  name: string;
+}
+
+// === Ingredient Substitutions ===
+export interface IngredientSubstitutionResponse {
+  id: number;
+  ingredientId: number;
+  ingredientName: string;
+  substituteId: number;
+  substituteName: string;
+  note: string | null;
+}
+
+export interface CreateIngredientSubstitutionRequest {
+  substituteId: number;
+  note?: string | null;
+}
+
+export interface UpdateIngredientSubstitutionRequest {
+  note?: string | null;
 }
 
 // === Recipes ===

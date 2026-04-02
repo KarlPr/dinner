@@ -24,6 +24,9 @@ export default function AppLayout() {
           <NavLink to="/ingredients" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
             Ingredients
           </NavLink>
+          <NavLink to="/ingredient-categories" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
+            Categories
+          </NavLink>
           <NavLink to="/users" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
             Users
           </NavLink>

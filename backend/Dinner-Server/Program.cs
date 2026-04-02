@@ -46,6 +46,8 @@ app.UseStaticFiles();
 // Map all endpoint groups
 app.MapAuthEndpoints();
 app.MapIngredientEndpoints();
+app.MapIngredientCategoryEndpoints();
+app.MapIngredientSubstitutionEndpoints();
 app.MapRecipeEndpoints();
 app.MapMealPlanEndpoints();
 app.MapPantryEndpoints();

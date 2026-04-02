@@ -27,6 +27,13 @@ import type {
   IngredientPackageResponse,
   CreateIngredientPackageRequest,
   UpdateIngredientPackageRequest,
+  IngredientCategoryResponse,
+  IngredientCategoryDetailResponse,
+  CreateIngredientCategoryRequest,
+  UpdateIngredientCategoryRequest,
+  IngredientSubstitutionResponse,
+  CreateIngredientSubstitutionRequest,
+  UpdateIngredientSubstitutionRequest,
 } from '@/types/api';
 
 const BASE = '/api';
@@ -109,8 +116,13 @@ export const auth = {
 
 // === Ingredients ===
 export const ingredients = {
-  list: (search?: string) =>
-    request<IngredientResponse[]>(`/ingredients${search ? `?search=${encodeURIComponent(search)}` : ''}`),
+  list: (search?: string, categoryId?: number) => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (categoryId != null) params.set('categoryId', String(categoryId));
+    const qs = params.toString();
+    return request<IngredientResponse[]>(`/ingredients${qs ? `?${qs}` : ''}`);
+  },
 
   get: (id: number) =>
     request<IngredientResponse>(`/ingredients/${id}`),
@@ -123,6 +135,39 @@ export const ingredients = {
 
   delete: (id: number) =>
     request<void>(`/ingredients/${id}`, { method: 'DELETE' }),
+};
+
+// === Ingredient Categories ===
+export const ingredientCategories = {
+  list: (search?: string) =>
+    request<IngredientCategoryResponse[]>(`/ingredient-categories${search ? `?search=${encodeURIComponent(search)}` : ''}`),
+
+  get: (id: number) =>
+    request<IngredientCategoryDetailResponse>(`/ingredient-categories/${id}`),
+
+  create: (data: CreateIngredientCategoryRequest) =>
+    request<IngredientCategoryResponse>('/ingredient-categories', { method: 'POST', body: JSON.stringify(data) }),
+
+  update: (id: number, data: UpdateIngredientCategoryRequest) =>
+    request<IngredientCategoryResponse>(`/ingredient-categories/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  delete: (id: number) =>
+    request<void>(`/ingredient-categories/${id}`, { method: 'DELETE' }),
+};
+
+// === Ingredient Substitutions ===
+export const ingredientSubstitutions = {
+  list: (ingredientId: number) =>
+    request<IngredientSubstitutionResponse[]>(`/ingredients/${ingredientId}/substitutions`),
+
+  create: (ingredientId: number, data: CreateIngredientSubstitutionRequest) =>
+    request<IngredientSubstitutionResponse>(`/ingredients/${ingredientId}/substitutions`, { method: 'POST', body: JSON.stringify(data) }),
+
+  update: (ingredientId: number, id: number, data: UpdateIngredientSubstitutionRequest) =>
+    request<IngredientSubstitutionResponse>(`/ingredients/${ingredientId}/substitutions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  delete: (ingredientId: number, id: number) =>
+    request<void>(`/ingredients/${ingredientId}/substitutions/${id}`, { method: 'DELETE' }),
 };
 
 // === Recipes ===
